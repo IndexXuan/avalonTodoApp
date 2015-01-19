@@ -3,7 +3,7 @@
 
 ### Intro  
 avalonjs(MVVM framework) todoApp demo,   
-inspire by [一步步做一个todoMVC](http://www.html-js.com/article/Avalon-tutorial-16-step-by-step-do-a-todoMVC, "前端乱炖, 司徒正美avalon教程专栏之18课")
+inspire by [一步步做一个todoMVC](http://www.html-js.com/article/Avalon-tutorial-16-step-by-step-do-a-todoMVC  "前端乱炖, 司徒正美avalon教程专栏之18课")
 
 ### Reference  
 * avalonjs - https://github.com/RubyLouvre/avalon/
