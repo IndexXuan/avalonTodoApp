@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="cn">
+    <head>
+        <meta charset="utf-8">
+        <title>avalon • TodoMVC</title>
+        <link rel="stylesheet" href="base.css">
+        <script src="avalon.js"></script>
+        <style>
+            .ms-controller {
+                visibility: hidden;
+            }
+            .hidden {
+                display: none!important;
+            }
+        </style>
+        <script>
+            avalon.filters.capitalize = function(a) { // filter
+                return a.charAt(0).toUpperCase() + a.slice(1)
+            }
+            var model = avalon.define({ // vm
+                $id: "todo",
+                newTodo: "",
+                todos: JSON.parse(localStorage.getItem("xx_todo")) || [],
+                addTodo: function(e) {
+                    e.preventDefault() // 阻止页面刷新
+                    var newTodo = model.newTodo.trim()
+                    if (!newTodo.length) {
+                        return
+                    }
+                    model.todos.push({ // default set
+                        title: newTodo,
+                        completed: false,
+                        hidden: false
+                    });
+                    //avalon.log(model.todos.$model);
+                    store_todo(); //更新后写入本地
+                    model.newTodo = ""//清空内容
+                },
+                editingIndex: NaN,
+                editTodo: function($index) {
+                    model.editingIndex = $index
+                    // 为了用户体验,有时不得不写一些DOM处理
+                    var el = this.parentNode.parentNode
+                    //avalon.log(el);
+                    setTimeout(function() { // 让光标定位于文本之后
+                        var input = el.querySelector("input.edit")
+                        input.focus()
+                        input.value = input.value
+                    })
+                },
+                doneEditing: function() { // 还原
+                    model.editingIndex = NaN
+                },
+                allChecked: false,
+                checkOne: function() {//点击UI列表的checkbox时
+                    //avalon.log('checkOne');
+                    model.$unwatch()
+                    model.allChecked = model.todos.every(function(todoObj) {
+                        return  todoObj.completed
+                    })
+                    model.$watch()
+                    updateCount()
+                },
+                state: localStorage.getItem('xx_todo_state') || "all",
+                status: ["all", "active", "completed"],
+                remainingCount: 0,
+                completedCount: 0,
+                removeCompleted: function() {
+                    model.todos.removeAll(function(el) {
+                        return el.completed
+                    })
+                    store_todo();
+                }
+            }) // define end
+
+            function updateCount() {
+                model.remainingCount = model.todos.filter(function(el) {
+                    return el.completed === false
+                }).length
+                model.completedCount = model.todos.length - model.remainingCount;
+            }
+
+            model.$watch("allChecked", function(completed) { // 点击上方checkbox时
+                model.todos.forEach(function(todo) {
+                    todo.completed = completed
+                })
+                updateCount()
+            })
+
+            model.todos.$watch("length", updateCount)
+
+            function changeState(el) {
+                model.state = el;
+                if (model.state === 'completed') {
+                    model.todos.forEach(function(val) {
+                        return val.completed ? val.hidden = false : val.hidden = true;
+                    })
+                    store_todo(); //更新后写入本地
+                } else if (el === 'active') {
+                    model.todos.forEach(function(val) {
+                        return !val.completed ? val.hidden = false : val.hidden = true;
+                    })
+                    store_todo(); //更新后写入本地
+                } else {
+                    model.todos.forEach(function(val) {
+                        return val.hidden = false;
+                    })
+                    store_todo(); //更新后写入本地
+                }
+                localStorage.setItem('xx_todo_state', el);
+            }
+
+            function store_todo() {
+                localStorage.setItem('xx_todo', JSON.stringify(model.todos.$model));
+                //avalon.log('store done!');
+                updateCount();
+                //avalon.log('updateCount done!');
+            }
+
+        </script>
+    </head>
+    <body ms-controller="todo" class="ms-controller">
+        <section id="todoapp">
+            <header id="header">
+                <h1>todos</h1>
+                <form id="todo-form" ms-submit="addTodo" autocomplete="off">
+                    <input id="new-todo" ms-duplex="newTodo" placeholder="What needs to be done?"  autofocus>
+                </form>
+            </header>
+            <section id="main" ms-visible="todos.size()" >
+                <input id="toggle-all" type="checkbox" ms-duplex-checked="allChecked" ms-click="store_todo">
+                <label for="toggle-all">Mark all as complete</label>
+                <ul id="todo-list">
+                    <li ms-repeat-todo="todos" ms-class="completed: todo.completed" 
+                                               ms-class-1="editing: $index === editingIndex"
+                                               ms-class-2="hidden: todo.hidden">
+                        <div class="view">
+                            <input  class="toggle" 
+                                    type="checkbox" 
+                                    ms-duplex-checked="todo.completed" 
+                                    data-duplex-changed="checkOne" 
+                                    ms-click="store_todo">
+                            <label ms-dblclick="editTodo($index)">{{todo.title}}</label>
+                            <button class="destroy" ms-click="$remove"></button>
+                        </div>
+                        <form action="javascript:void(0)" ms-submit="doneEditing">
+                            <input class="edit" ms-duplex="todo.title" ms-blur="doneEditing" >
+                        </form>
+                    </li>
+                </ul>
+            </section>
+            <footer id="footer" ms-visible="todos.size()">
+                <span id="todo-count">
+                    <strong >{{remainingCount}}</strong>
+                    item{{remainingCount>1 ? "s" : ""}} left
+                </span>
+                <ul id="filters">
+                    <li ms-repeat="status">
+                        <a ms-class="selected: state == el" ms-href="#/{{el}}" ms-click="changeState(el)">{{ el | capitalize }}</a>
+                    </li>
+                </ul>
+                <button id="clear-completed" ms-visible="completedCount" ms-click="removeCompleted">
+                    Clear completed ({{completedCount}})
+                </button>
+            </footer>
+        </section>
+        <footer id="info">
+            <p>Double-click to edit a todo</p>
+            <p>Created by <a href="">小炫</a></p>
+            <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+        </footer>
+    </body>
+</html>
